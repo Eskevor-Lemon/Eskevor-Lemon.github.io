@@ -1,0 +1,5 @@
+// Run on your own trusted computer. Values are for Sites secret settings, never Git.
+import {randomBytes,pbkdf2Sync} from 'node:crypto';
+if(!process.stdin.isTTY){throw Error('Run this command in an interactive terminal.');}
+process.stdout.write('输入至少 16 位管理密码（不会显示）：');process.stdin.setRawMode(true);process.stdin.resume();let password='';
+process.stdin.on('data',chunk=>{for(const char of chunk.toString()){if(char==='\u0003'){process.stdin.setRawMode(false);process.exit(1);}else if(char==='\r'||char==='\n'){process.stdin.setRawMode(false);process.stdin.pause();if(password.length<16){console.error('\n密码至少需要 16 位。');process.exit(1);}const salt=randomBytes(16);console.log('\n将以下值分别填入 Sites 服务端秘密变量：');console.log('ADMIN_PASSWORD_HASH='+salt.toString('hex')+':'+pbkdf2Sync(password,salt,100000,32,'sha256').toString('hex'));console.log('SESSION_SECRET='+randomBytes(32).toString('hex'));password='';process.exit(0);}else if(char==='\u007f'){password=password.slice(0,-1);}else password+=char;}});

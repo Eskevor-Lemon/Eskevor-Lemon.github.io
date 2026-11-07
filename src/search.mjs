@@ -1,0 +1,1 @@
+export function searchTerms(terms,query) { const words=query.normalize('NFKC').toLocaleLowerCase().trim().split(/\s+/).filter(Boolean);return terms.filter(t=>words.every(w=>[t.name,t.definition,t.english,t.abbreviation].join(' ').normalize('NFKC').toLocaleLowerCase().includes(w))); }
