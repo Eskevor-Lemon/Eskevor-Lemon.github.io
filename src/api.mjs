@@ -40,9 +40,15 @@ export function validateTerm(input) {
  if(!term.name||!term.definition)fail(400,'请填写专有名词和解释。'); return term;
 }
 
-export function githubStore(env, fetcher=fetch) {
+export function githubStore(env, fetcher=(url,options)=>fetch(url,options)) {
  const headers={'Accept':'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28','User-Agent':'Lemon-Term-Library',...(env.GITHUB_TOKEN?{Authorization:`Bearer ${env.GITHUB_TOKEN}`}:{})};
- async function call(path,options={}) {try{return await fetcher(`https://api.github.com/repos/${REPO}/${path}`,{...options,headers:{...headers,...options.headers},signal:AbortSignal.timeout(15000),redirect:'error'});}catch{fail(502,'暂时无法连接 GitHub，请稍后重试。');}}
+ async function call(path,options={}) {
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15000);
+  try{return await fetcher(`https://api.github.com/repos/${REPO}/${path}`,{...options,headers:{...headers,...options.headers},signal:controller.signal,redirect:'error'});}
+  catch(error){console.error('github_request_failed', {name:error?.name || 'Error',reason:controller.signal.aborted?'timeout':error instanceof TypeError?'runtime_or_network':'network'});fail(502,'暂时无法连接 GitHub，请稍后重试。');}
+  finally{clearTimeout(timer);}
+ }
  return {
  async read() {
   const response=await call(`contents/${FILE}?ref=${BRANCH}`);
